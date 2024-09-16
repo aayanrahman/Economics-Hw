@@ -1,32 +1,55 @@
 import wbgapi as wb
 import pandas as pd
-import matplotlib.pyplot as plt  # Import this to show the plot
+import matplotlib.pyplot as plt
 
-# Define the country and the indicator for Unemployment Rate
-country_code = 'BGD'  # Bangladesh
-indicator = 'SL.UEM.TOTL.ZS'  # Unemployment (% of total labor force)
+# Set up the indicators we want to fetch
+indicators = {
+    'NY.GDP.MKTP.KD.ZG': 'GDP growth (annual %)',
+    'FP.CPI.TOTL.ZG': 'Inflation, consumer prices (annual %)',
+    'SL.UEM.TOTL.ZS': 'Unemployment, total (% of total labor force)',
+    'BN.CAB.XOKA.GD.ZS': 'Current account balance (% of GDP)'
+}
 
-# Fetch the data for the last 5 years
-years = range(2018, 2023)
-unemployment_data = list(wb.data.fetch(indicator, country_code, time=years))
+# Fetch data for Bangladesh for the last 10 years
+data = wb.data.DataFrame(indicators.keys(), economy='BGD', time=range(2013, 2023), labels=True)
 
-# Transform the data into a pandas DataFrame
-def transform_unemployment_data(data):
-    # Create a dictionary of date and value pairs
-    data_dict = {d.get('date', 'N/A'): d.get('value', 'N/A') for d in data if 'date' in d and 'value' in d}
-    # Convert the dictionary into a pandas DataFrame
-    df = pd.DataFrame(list(data_dict.items()), columns=['Year', 'Unemployment Rate'])
-    df['Year'] = pd.to_datetime(df['Year'], format='%Y')  # Ensure the Year column is in datetime format
-    df['Unemployment Rate'] = pd.to_numeric(df['Unemployment Rate'], errors='coerce')  # Convert to numeric
-    return df
+# Clean and prepare the data
+df = data.reset_index()
+df = df.melt(id_vars=['series'], var_name='year', value_name='value')
+df['year'] = df['year'].str.replace('YR', '')  # Remove 'YR' prefix from year
+df['indicator'] = df['series'].map(indicators)
 
-unemployment_df = transform_unemployment_data(unemployment_data)
+# Pivot the data for easier plotting
+df_pivot = df.pivot(index='year', columns='indicator', values='value')
 
-# Display the DataFrame
-print(unemployment_df)
+# Remove the row with indicator names (if it exists)
+df_pivot = df_pivot[df_pivot.index != 'Series']
 
-# Plot using pandas
-unemployment_df.plot(x='Year', y='Unemployment Rate', kind='line', marker='o', title='Unemployment Rate in Bangladesh (2018-2022)')
+# Convert index to datetime and sort
+df_pivot.index = pd.to_datetime(df_pivot.index)
+df_pivot = df_pivot.sort_index()
 
-# Show the plot (useful if you're not using Jupyter)
-plt.show()
+# Convert values to float
+df_pivot = df_pivot.astype(float)
+
+# Print the data table
+print("\nBangladesh Economic Data (2013-2022):")
+print(df_pivot.to_string())
+
+# Create the plot
+plt.figure(figsize=(12, 8))
+for column in df_pivot.columns:
+    plt.plot(df_pivot.index, df_pivot[column], marker='o', label=column)
+
+plt.title("Bangladesh Economic Indicators (2013-2022)")
+plt.xlabel("Year")
+plt.ylabel("Value")
+plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+plt.grid(True)
+plt.tight_layout()
+
+# Save the plot
+plt.savefig('bangladesh_economic_indicators.png')
+plt.close()
+
+print("\nGraph has been saved as 'bangladesh_economic_indicators.png'")
