@@ -21,8 +21,6 @@ df['indicator'] = df['series'].map(indicators)
 
 # Pivot the data for easier plotting
 df_pivot = df.pivot(index='year', columns='indicator', values='value')
-
-# Remove the row with indicator names (if it exists)
 df_pivot = df_pivot[df_pivot.index != 'Series']
 
 # Convert index to datetime and sort
@@ -32,7 +30,6 @@ df_pivot = df_pivot.sort_index()
 # Convert values to float
 df_pivot = df_pivot.astype(float)
 
-# Print the data table
 print("\nBangladesh Economic Data (2013-2022):")
 print(df_pivot.to_string())
 
